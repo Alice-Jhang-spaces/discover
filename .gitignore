@@ -1,0 +1,7 @@
+node_modules/
+.vite/
+.DS_Store
+.claude/
+.env
+database.sqlite
+dist/

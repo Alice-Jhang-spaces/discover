@@ -1,0 +1,1371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Discover</title>
+  <style>
+    /* ── Reset + base ──────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    html { scroll-behavior: smooth; }
+    body {
+      background: #f2f2f2;
+      color: #111;
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Helvetica, Arial, sans-serif;
+      min-height: 100vh;
+    }
+    ::-webkit-scrollbar       { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.25); }
+    :focus-visible { outline: 2px solid #6c6cff; outline-offset: 2px; border-radius: 4px; }
+
+    /* ── App shell ────────────────────────────────────────────────── */
+    .app { display: flex; flex-direction: column; min-height: 100vh; }
+    .app__body {
+      display: flex; align-items: flex-start;
+      max-width: 1380px; margin: 0 auto; width: 100%;
+      padding: 0 24px; gap: 20px;
+    }
+    .app__feed { flex: 1; min-width: 0; }
+
+    /* ── Navbar ───────────────────────────────────────────────────── */
+    .navbar {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(255,255,255,0.95);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+      padding: 0 28px;
+      display: grid; grid-template-columns: 1fr auto 1fr;
+      align-items: center; height: 52px;
+    }
+    .navbar__brand { font-size: 16px; font-weight: 700; color: #111; letter-spacing: -0.3px; justify-self: start; }
+    .navbar__tabs { display: flex; align-items: center; gap: 0; justify-self: center; }
+    .navbar__tab {
+      position: relative; background: none; border: none; cursor: pointer;
+      padding: 0 16px; height: 52px; font-size: 14px; font-weight: 500;
+      color: rgba(0,0,0,0.45); white-space: nowrap;
+      display: flex; align-items: center; gap: 4px; transition: color 0.15s ease;
+    }
+    .navbar__tab:hover { color: rgba(0,0,0,0.85); }
+    .navbar__tab--active { color: #111; font-weight: 600; }
+    .navbar__tab--active::after {
+      content: ''; position: absolute; bottom: 0; left: 16px; right: 16px;
+      height: 2px; background: #111; border-radius: 2px 2px 0 0;
+    }
+    .navbar__topics-wrap { position: relative; }
+    .navbar__tab--topics { gap: 3px; }
+    .navbar__chevron { width: 14px; height: 14px; transition: transform 0.2s ease; flex-shrink: 0; }
+    .navbar__chevron--open { transform: rotate(180deg); }
+    .navbar__dropdown {
+      position: absolute; top: calc(100% + 4px); left: 0;
+      background: #fff; border: 1px solid rgba(0,0,0,0.1); border-radius: 12px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);
+      padding: 6px; min-width: 180px; z-index: 200;
+      animation: dropdown-in 0.15s ease both;
+    }
+    @keyframes dropdown-in {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .navbar__dropdown-item {
+      display: flex; align-items: center; gap: 10px; width: 100%;
+      padding: 9px 12px; border-radius: 8px; border: none; background: none;
+      font-size: 13.5px; font-weight: 500; color: #222; cursor: pointer;
+      text-align: left; transition: background 0.12s ease;
+    }
+    .navbar__dropdown-item:hover { background: rgba(0,0,0,0.05); }
+    .navbar__dropdown-item--active { background: rgba(108,108,255,0.08); color: #6c6cff; font-weight: 600; }
+    .navbar__dropdown-icon { font-size: 15px; width: 20px; text-align: center; }
+    .navbar__actions { display: flex; align-items: center; gap: 8px; justify-self: end; }
+    .navbar__tooltip-wrap { position: relative; display: flex; }
+    .navbar__tooltip {
+      position: absolute; top: calc(100% + 8px); right: 0;
+      background: #111; color: #fff; font-size: 12.5px; font-weight: 500;
+      padding: 6px 10px; border-radius: 8px; white-space: nowrap;
+      pointer-events: none; opacity: 0; transform: translateY(-4px);
+      transition: opacity 0.15s ease, transform 0.15s ease; z-index: 300;
+    }
+    .navbar__tooltip-wrap:hover .navbar__tooltip { opacity: 1; transform: translateY(0); }
+    .navbar__icon-btn {
+      width: 34px; height: 34px; border-radius: 8px;
+      border: 1px solid rgba(0,0,0,0.12); background: #fff;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: background 0.15s ease; color: #333;
+    }
+    .navbar__icon-btn svg { width: 16px; height: 16px; }
+    .navbar__icon-btn:hover { background: rgba(0,0,0,0.05); }
+    .navbar__share-wrap { position: relative; }
+    .navbar__share-btn {
+      display: flex; align-items: center; gap: 6px;
+      padding: 7px 14px; border-radius: 8px;
+      border: 1px solid rgba(0,0,0,0.12); background: #fff;
+      font-size: 13px; font-weight: 600; color: #111;
+      cursor: pointer; transition: background 0.15s ease;
+    }
+    .navbar__share-btn:hover { background: rgba(0,0,0,0.05); }
+    .navbar__share-dropdown {
+      position: absolute; top: calc(100% + 6px); right: 0;
+      background: #fff; border: 1px solid rgba(0,0,0,0.1); border-radius: 12px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);
+      padding: 6px; min-width: 160px; z-index: 200;
+      animation: dropdown-in 0.15s ease both;
+    }
+    .navbar__share-item {
+      display: flex; align-items: center; gap: 10px; width: 100%;
+      padding: 9px 12px; border-radius: 8px; border: none; background: none;
+      font-size: 13.5px; font-weight: 500; color: #222; cursor: pointer;
+      text-align: left; transition: background 0.12s ease; white-space: nowrap;
+    }
+    .navbar__share-item:hover { background: rgba(0,0,0,0.05); }
+
+    /* ── Feed ─────────────────────────────────────────────────────── */
+    .feed { display: flex; flex-direction: column; gap: 12px; padding: 20px 0 80px; min-height: 100vh; }
+    .feed__section { display: flex; flex-direction: column; gap: 12px; }
+    .feed__small-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .feed__double-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .feed__sentinel { height: 1px; pointer-events: none; visibility: hidden; }
+    .feed__end { text-align: center; font-size: 12.5px; color: rgba(0,0,0,0.3); padding: 20px 0 4px; letter-spacing: 0.2px; }
+    .feed__state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 24px; gap: 16px; text-align: center; min-height: 60vh; }
+    .feed__inline-err { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 16px; font-size: 13px; color: rgba(0,0,0,0.45); }
+    .feed__btn { padding: 8px 20px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.14); background: #fff; color: rgba(0,0,0,0.75); font-size: 13px; font-weight: 500; cursor: pointer; transition: background 0.15s, border-color 0.15s; }
+    .feed__btn:hover { background: rgba(0,0,0,0.04); border-color: rgba(0,0,0,0.24); }
+    .feed__btn--sm { padding: 5px 14px; font-size: 12px; }
+    @media (max-width: 768px) {
+      .feed__small-grid { grid-template-columns: repeat(2, 1fr); }
+      .feed__double-row { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 480px) {
+      .feed { padding: 12px 0 60px; gap: 10px; }
+      .feed__small-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ── NewsCard shared ──────────────────────────────────────────── */
+    .card {
+      background: #fff; border: 1px solid rgba(0,0,0,0.07); border-radius: 12px;
+      cursor: pointer; transition: box-shadow 0.18s ease, border-color 0.18s ease;
+      display: flex; flex-direction: column;
+    }
+    .card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.09); border-color: rgba(0,0,0,0.13); }
+    .card__link { display: contents; text-decoration: none; color: inherit; }
+    .card__img-wrap { position: relative; overflow: hidden; }
+    .card__img-wrap--16-8 { aspect-ratio: 16 / 8; width: 100%; }
+    .card__img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.4s ease; }
+    .card:hover .card__img { transform: scale(1.04); }
+    .card__thumb-wrap { flex-shrink: 0; width: 76px; height: 76px; border-radius: 8px; overflow: hidden; }
+    .card__thumb { width: 100%; height: 100%; object-fit: cover; transition: transform 0.35s ease; }
+    .card:hover .card__thumb { transform: scale(1.06); }
+    .card__badge { font-size: 10px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: var(--cat); }
+    .card__badge--overlay {
+      position: absolute; top: 10px; left: 10px;
+      padding: 3px 9px; border-radius: 20px; background: #fff;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.15);
+    }
+    .card__badge--inline { display: inline; }
+    .card__body { display: flex; flex-direction: column; gap: 5px; padding: 16px 18px; flex: 1; min-width: 0; }
+    .card__source-label { font-size: 10.5px; font-weight: 600; color: rgba(0,0,0,0.38); text-transform: uppercase; letter-spacing: 0.4px; }
+    .card__title { margin: 0; font-weight: 700; line-height: 1.35; letter-spacing: -0.2px; color: #111; }
+    .card__title--lg { font-size: clamp(17px, 1.8vw, 22px); }
+    .card__title--md { font-size: 14.5px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    .card__title--sm { font-size: 13.5px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    .card__summary { margin: 0; font-size: 13.5px; line-height: 1.65; color: rgba(0,0,0,0.52); display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+    .card__summary--clamp2 { -webkit-line-clamp: 2; font-size: 12.5px; }
+    .card__tags { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; margin-top: 2px; }
+    .card__meta { display: flex; align-items: center; gap: 5px; font-size: 11.5px; color: rgba(0,0,0,0.38); margin-top: auto; padding-top: 6px; }
+    .card__source { font-weight: 600; color: rgba(0,0,0,0.55); }
+    .card__dot    { opacity: 0.35; }
+    .card__time, .card__read { color: rgba(0,0,0,0.38); }
+
+    /* Headline variant */
+    .card--headline .card__link { display: grid; grid-template-columns: 1fr 1fr; min-height: 260px; }
+    .card--headline .card__img-wrap { min-height: 260px; border-radius: 11px 0 0 11px; }
+    .card--headline .card__body { justify-content: center; padding: 24px 26px; gap: 10px; }
+    .card--headline .card__summary { -webkit-line-clamp: 5; }
+    /* Small variant */
+    .card--small .card__link { display: flex; flex-direction: row; align-items: flex-start; gap: 12px; padding: 14px; flex: 1; }
+    .card--small .card__body { padding: 0; gap: 4px; }
+    /* Stacked variant */
+    .card--stacked .card__link { display: flex; flex-direction: column; flex: 1; }
+    .card--stacked .card__img-wrap { border-radius: 11px 11px 0 0; }
+    .card--stacked .card__body { gap: 6px; }
+    @media (max-width: 640px) {
+      .card--headline .card__link { grid-template-columns: 1fr; }
+      .card--headline .card__img-wrap { min-height: unset; aspect-ratio: 16 / 8; border-radius: 11px 11px 0 0; }
+      .card--headline .card__summary { display: none; }
+    }
+
+    /* ── Actions bar ──────────────────────────────────────────────── */
+    .card__actions {
+      display: flex; align-items: center; justify-content: flex-end;
+      gap: 2px; padding: 5px 10px 8px;
+      border-top: 1px solid rgba(0,0,0,0.05); flex-shrink: 0;
+    }
+    .card__action-btn {
+      display: flex; align-items: center; justify-content: center;
+      width: 28px; height: 28px; padding: 0; border: none; background: none;
+      border-radius: 6px; cursor: pointer; color: rgba(0,0,0,0.32);
+      transition: background 0.14s ease, color 0.14s ease;
+    }
+    .card__action-btn:hover { background: rgba(0,0,0,0.06); color: rgba(0,0,0,0.65); }
+    .card__action-btn--liked { color: #e5383b; }
+    .card__action-btn--liked:hover { background: rgba(229,56,59,0.08); color: #c0272a; }
+    .card__more-wrap { position: relative; }
+    .card__more-menu {
+      position: absolute; bottom: calc(100% + 6px); right: 0;
+      list-style: none; margin: 0; padding: 5px;
+      background: #fff; border: 1px solid rgba(0,0,0,0.08); border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.06);
+      min-width: 160px; z-index: 200;
+    }
+    .card__menu-item {
+      display: flex; align-items: center; gap: 9px; width: 100%;
+      padding: 8px 11px; background: none; border: none; border-radius: 8px;
+      font-size: 13px; font-weight: 500; color: #111; cursor: pointer;
+      text-align: left; white-space: nowrap; transition: background 0.12s ease;
+    }
+    .card__menu-item:hover { background: rgba(0,0,0,0.05); }
+    .card__menu-item--on { color: #4da6ff; }
+    .card__menu-item--danger { color: rgba(0,0,0,0.55); }
+    .card__menu-item--danger:hover { color: #e5383b; background: rgba(229,56,59,0.06); }
+    .card__menu-item--danger.card__menu-item--on { color: #e5383b; }
+
+    /* ── Skeleton ─────────────────────────────────────────────────── */
+    @keyframes shimmer {
+      0%   { background-position: -600px 0; }
+      100% { background-position:  600px 0; }
+    }
+    .skeleton {
+      background: linear-gradient(90deg, #ebebeb 25%, #f5f5f5 50%, #ebebeb 75%);
+      background-size: 1200px 100%; animation: shimmer 1.5s ease-in-out infinite; border-radius: 6px;
+    }
+    .skel-headline {
+      border-radius: 12px; overflow: hidden; background: #fff;
+      border: 1px solid rgba(0,0,0,0.07); display: grid;
+      grid-template-columns: 1fr 1fr; min-height: 260px;
+    }
+    .skel-headline__image { border-radius: 0; height: 100%; min-height: 260px; }
+    .skel-headline__body { padding: 24px 26px; display: flex; flex-direction: column; justify-content: center; gap: 10px; }
+    .skel-headline__src { height: 10px; width: 70px; }
+    .skel-headline__title { height: 20px; width: 92%; }
+    .skel-headline__title--lg { height: 22px; width: 80%; }
+    .skel-headline__line { height: 13px; width: 100%; }
+    .skel-headline__line--short { width: 65%; }
+    .skel-headline__meta { height: 11px; width: 130px; margin-top: 6px; }
+    .skel-smalls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .skel-double { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .skel-small { border-radius: 10px; overflow: hidden; background: #fff; border: 1px solid rgba(0,0,0,0.07); padding: 14px; display: flex; gap: 12px; align-items: flex-start; }
+    .skel-small--vertical { flex-direction: column; padding: 0; }
+    .skel-small__image { flex-shrink: 0; width: 76px; height: 76px; border-radius: 8px; }
+    .skel-small__image--full { width: 100%; height: auto; aspect-ratio: 16 / 8; border-radius: 0; }
+    .skel-small__body { flex: 1; display: flex; flex-direction: column; gap: 7px; padding-bottom: 2px; }
+    .skel-small__body--padded { padding: 14px 16px 16px; }
+    .skel-small__src { height: 10px; width: 60px; }
+    .skel-small__title { height: 13px; width: 90%; }
+    .skel-small__title--short { width: 65%; }
+    .skel-small__meta { height: 10px; width: 90px; margin-top: 4px; }
+    @media (max-width: 768px) { .skel-smalls { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 520px) {
+      .skel-smalls, .skel-double { grid-template-columns: 1fr; }
+      .skel-headline { grid-template-columns: 1fr; }
+      .skel-headline__image { min-height: 180px; }
+    }
+
+    /* ── Spinner ──────────────────────────────────────────────────── */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 28px 0; }
+    .spinner__ring { width: 32px; height: 32px; border: 3px solid rgba(0,0,0,0.08); border-top-color: rgba(0,0,0,0.45); border-radius: 50%; animation: spin 0.75s linear infinite; }
+    .spinner__text { font-size: 12px; color: rgba(0,0,0,0.35); letter-spacing: 0.2px; }
+
+    /* ── Sidebar ──────────────────────────────────────────────────── */
+    .sidebar {
+      width: 300px; flex-shrink: 0; display: flex; flex-direction: column;
+      gap: 12px; padding: 20px 0 80px; position: sticky; top: 52px;
+      max-height: calc(100vh - 52px); overflow-y: auto; scrollbar-width: none;
+    }
+    .sidebar::-webkit-scrollbar { display: none; }
+    @media (max-width: 900px) { .sidebar { display: none; } }
+
+    /* ── InterestsWidget ──────────────────────────────────────────── */
+    .interests { background: #fff; border: 1px solid rgba(0,0,0,0.08); border-radius: 14px; padding: 18px 18px 16px; position: relative; }
+    .interests__close { position: absolute; top: 14px; right: 14px; background: none; border: none; font-size: 18px; color: rgba(0,0,0,0.35); cursor: pointer; line-height: 1; padding: 0 2px; transition: color 0.15s; }
+    .interests__close:hover { color: rgba(0,0,0,0.7); }
+    .interests__title { font-size: 15px; font-weight: 700; color: #111; margin-bottom: 5px; }
+    .interests__desc { font-size: 12.5px; color: rgba(0,0,0,0.5); line-height: 1.5; margin-bottom: 14px; }
+    .interests__chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+    .interests__chip { display: flex; align-items: center; gap: 6px; padding: 7px 13px; border-radius: 22px; border: 1.5px solid rgba(0,0,0,0.13); background: #fff; font-size: 12.5px; font-weight: 500; color: #222; cursor: pointer; transition: border-color 0.15s, background 0.15s, color 0.15s; }
+    .interests__chip:hover { border-color: rgba(0,0,0,0.28); }
+    .interests__chip--on { border-color: #6c6cff; background: rgba(108,108,255,0.07); color: #6c6cff; }
+    .interests__chip-icon { font-size: 13px; }
+    .interests__save { width: 100%; padding: 11px; border-radius: 10px; border: none; background: #222; color: #fff; font-size: 13.5px; font-weight: 600; cursor: pointer; transition: background 0.15s, opacity 0.15s; }
+    .interests__save:hover:not(:disabled) { background: #000; }
+    .interests__save:disabled { opacity: 0.4; cursor: not-allowed; }
+    .interests__save--done { background: #1a8f5a; }
+    .interests__save--done:hover { background: #157a4d !important; }
+
+    /* ── WeatherWidget ────────────────────────────────────────────── */
+    .weather { background: #fff; border: 1px solid rgba(0,0,0,0.08); border-radius: 14px; padding: 16px 18px 14px; }
+    .weather__top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+    .weather__current { display: flex; align-items: center; gap: 6px; }
+    .weather__icon { font-size: 18px; }
+    .weather__temp { font-size: 17px; font-weight: 600; color: #111; }
+    .weather__unit { font-size: 13px; font-weight: 400; color: rgba(0,0,0,0.4); }
+    .weather__condition { font-size: 13px; color: rgba(0,0,0,0.45); }
+    .weather__location-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .weather__location { font-size: 13px; color: rgba(0,0,0,0.55); }
+    .weather__hl { font-size: 12px; color: rgba(0,0,0,0.4); }
+    .weather__divider { height: 1px; background: rgba(0,0,0,0.07); margin-bottom: 12px; }
+    .weather__forecast { display: flex; justify-content: space-between; }
+    .weather__day { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .weather__day-icon { font-size: 18px; }
+    .weather__day-temp { font-size: 12.5px; font-weight: 600; color: #111; }
+    .weather__day-label { font-size: 11px; color: rgba(0,0,0,0.4); }
+
+    /* ── MarketWidget ─────────────────────────────────────────────── */
+    .market { background: #fff; border: 1px solid rgba(0,0,0,0.08); border-radius: 14px; padding: 16px 18px 14px; }
+    .market__section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .market__section-header--mt { margin-top: 18px; }
+    .market__section-title { font-size: 13px; font-weight: 700; color: #111; }
+    .market__chevron { font-size: 16px; color: rgba(0,0,0,0.35); cursor: pointer; }
+    .market__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .market__card { background: #f7f7f7; border-radius: 10px; padding: 10px 12px 8px; overflow: hidden; }
+    .market__card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 4px; margin-bottom: 2px; }
+    .market__card-name { font-size: 11px; color: rgba(0,0,0,0.5); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .market__card-pct { font-size: 10.5px; font-weight: 700; white-space: nowrap; flex-shrink: 0; }
+    .market__card-price { font-size: 13px; font-weight: 700; color: #111; margin-bottom: 1px; }
+    .market__card-change { font-size: 11px; font-weight: 500; margin-bottom: 8px; }
+    .market__spark { width: 100%; height: 36px; display: block; }
+    .market__up { color: #1a8f5a; }
+    .market__down { color: #e5383b; }
+    .market__trending { display: flex; flex-direction: column; gap: 0; }
+    .market__row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid rgba(0,0,0,0.05); }
+    .market__row:last-child { border-bottom: none; }
+    .market__logo { width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; color: #fff; flex-shrink: 0; letter-spacing: -0.5px; }
+    .market__row-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+    .market__row-name { font-size: 12px; font-weight: 600; color: #111; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .market__row-ticker { font-size: 10.5px; color: rgba(0,0,0,0.4); }
+    .market__row-right { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; flex-shrink: 0; }
+    .market__row-price { font-size: 12px; font-weight: 600; color: #111; }
+    .market__row-change { font-size: 11px; font-weight: 600; }
+
+    /* ── CookieBanner ─────────────────────────────────────────────── */
+    .cookie-banner { position: fixed; bottom: 24px; right: 24px; z-index: 999; width: 380px; animation: cookie-slide-up 0.35s cubic-bezier(0.34, 1.3, 0.64, 1) both; }
+    @keyframes cookie-slide-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    .cookie-banner__card { background: #fff; border: 1px solid rgba(0,0,0,0.1); border-radius: 18px; padding: 22px 22px 18px; box-shadow: 0 8px 40px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.06); }
+    .cookie-banner__header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .cookie-banner__icon { font-size: 18px; line-height: 1; }
+    .cookie-banner__title { font-size: 15px; font-weight: 700; color: #111; }
+    .cookie-banner__body { font-size: 13.5px; line-height: 1.6; color: rgba(0,0,0,0.6); margin-bottom: 18px; }
+    .cookie-banner__link { color: rgba(0,0,0,0.6); text-decoration: underline; text-underline-offset: 2px; }
+    .cookie-banner__link:hover { color: #111; }
+    .cookie-banner__actions { display: flex; gap: 10px; }
+    .cookie-banner__btn { flex: 1; padding: 11px 14px; border-radius: 12px; font-size: 13.5px; font-weight: 600; cursor: pointer; transition: background 0.15s ease, opacity 0.15s ease; border: none; }
+    .cookie-banner__btn--primary { background: #111; color: #fff; }
+    .cookie-banner__btn--primary:hover { background: #000; }
+    .cookie-banner__btn--secondary { background: rgba(0,0,0,0.07); color: #111; }
+    .cookie-banner__btn--secondary:hover { background: rgba(0,0,0,0.12); }
+    @media (max-width: 520px) { .cookie-banner { bottom: 12px; } .cookie-banner__actions { flex-direction: column; } }
+
+    /* ── ScrollToTop ──────────────────────────────────────────────── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateX(-50%) translateY(8px); }
+      to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
+    .scroll-top {
+      position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%);
+      z-index: 200; width: 40px; height: 40px; border-radius: 50%;
+      border: 1px solid rgba(0,0,0,0.12); background: #fff;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.12); font-size: 18px; color: #333;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: box-shadow 0.2s, transform 0.2s; animation: fadeUp 0.2s ease both;
+    }
+    .scroll-top:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.18); transform: translateX(-50%) translateY(-2px); }
+  </style>
+</head>
+<body>
+
+<div class="app">
+  <!-- ── Navbar ──────────────────────────────────────────────────── -->
+  <header class="navbar">
+    <span class="navbar__brand">Discover</span>
+
+    <nav class="navbar__tabs" role="navigation">
+      <button class="navbar__tab navbar__tab--active" id="tab-foryou" onclick="handleTabForYou()">For You</button>
+      <button class="navbar__tab" id="tab-top" onclick="handleTabTop()">Top</button>
+      <div class="navbar__topics-wrap" id="topics-wrap">
+        <button class="navbar__tab navbar__tab--topics" id="tab-topics"
+          onclick="toggleTopicsDropdown()" aria-haspopup="listbox" aria-expanded="false">
+          <span id="topics-label">Topics</span>
+          <svg class="navbar__chevron" id="topics-chevron" viewBox="0 0 16 16" fill="none">
+            <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div class="navbar__dropdown" id="topics-dropdown" style="display:none"></div>
+      </div>
+    </nav>
+
+    <div class="navbar__actions">
+      <div class="navbar__tooltip-wrap" id="filter-wrap" style="display:none">
+        <button class="navbar__icon-btn" onclick="handleFilterClick()" aria-label="Personalize Discover">
+          <svg viewBox="0 0 20 20" fill="none">
+            <path d="M3 5h14M6 10h8M9 15h2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <div class="navbar__tooltip">Personalize Discover</div>
+      </div>
+      <div class="navbar__share-wrap" id="share-wrap">
+        <button class="navbar__share-btn" onclick="toggleShareDropdown()" aria-haspopup="true" aria-expanded="false">
+          <svg viewBox="0 0 20 20" fill="none" width="14" height="14">
+            <path d="M14 3l3 3-3 3M17 6H8a5 5 0 000 10h1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Share
+        </button>
+        <div class="navbar__share-dropdown" id="share-dropdown" style="display:none">
+          <button class="navbar__share-item" onclick="handleCopyLink()">
+            <svg viewBox="0 0 20 20" fill="none" width="15" height="15">
+              <path d="M8 4H5a2 2 0 00-2 2v9a2 2 0 002 2h9a2 2 0 002-2v-3M12 2h6m0 0v6m0-6L9 11"
+                stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span id="copy-label">Copy Link</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Body ───────────────────────────────────────────────────── -->
+  <main class="app__body">
+    <div class="app__feed">
+      <section class="feed" id="feed" role="feed" aria-label="News articles"></section>
+    </div>
+    <aside class="sidebar" id="sidebar">
+      <div id="interests-container"></div>
+      <!-- WeatherWidget -->
+      <div class="weather">
+        <div class="weather__top">
+          <div class="weather__current">
+            <span class="weather__icon">☀️</span>
+            <span class="weather__temp">72° <span class="weather__unit">F/C</span></span>
+          </div>
+          <span class="weather__condition">Sunny</span>
+        </div>
+        <div class="weather__location-row">
+          <span class="weather__location">Carmichael</span>
+          <span class="weather__hl">H: 73° L: 47°</span>
+        </div>
+        <div class="weather__divider"></div>
+        <div class="weather__forecast">
+          <div class="weather__day"><span class="weather__day-icon">⛅</span><span class="weather__day-temp">73°</span><span class="weather__day-label">Fri</span></div>
+          <div class="weather__day"><span class="weather__day-icon">⛅</span><span class="weather__day-temp">77°</span><span class="weather__day-label">Sat</span></div>
+          <div class="weather__day"><span class="weather__day-icon">⛅</span><span class="weather__day-temp">78°</span><span class="weather__day-label">Sun</span></div>
+          <div class="weather__day"><span class="weather__day-icon">☁️</span><span class="weather__day-temp">72°</span><span class="weather__day-label">Mon</span></div>
+          <div class="weather__day"><span class="weather__day-icon">🌧️</span><span class="weather__day-temp">61°</span><span class="weather__day-label">Tue</span></div>
+        </div>
+      </div>
+      <!-- MarketWidget (static HTML with inline SVG sparklines) -->
+      <div class="market" id="market-widget"></div>
+    </aside>
+  </main>
+</div>
+
+<script>
+'use strict';
+
+// ── Data ────────────────────────────────────────────────────────────────────
+
+const IMAGES = [
+  'https://images.unsplash.com/photo-1677442135703-1787eea5ce01?w=800&q=80',
+  'https://images.unsplash.com/photo-1639762681057-408e52192e55?w=800&q=80',
+  'https://images.unsplash.com/photo-1614064641938-3bbee52942c7?w=800&q=80',
+  'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800&q=80',
+  'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&q=80',
+  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&q=80',
+  'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800&q=80',
+  'https://images.unsplash.com/photo-1530521954074-e64f6810b32d?w=800&q=80',
+  'https://images.unsplash.com/photo-1516110833967-0b5716ca1387?w=800&q=80',
+  'https://images.unsplash.com/photo-1569163139394-de4e5f43e5ca?w=800&q=80',
+  'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=800&q=80',
+  'https://images.unsplash.com/photo-1434494878577-86c23bcb06b9?w=800&q=80',
+  'https://images.unsplash.com/photo-1511174511562-5f7f18b874f8?w=800&q=80',
+  'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800&q=80',
+  'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=800&q=80',
+  'https://images.unsplash.com/photo-1559589689-577aabd1db4f?w=800&q=80',
+  'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=800&q=80',
+  'https://images.unsplash.com/photo-1542281286-9e0a16bb7366?w=800&q=80',
+];
+
+const NOW = Date.now();
+function minsAgo(n) { return new Date(NOW - n * 60 * 1000).toISOString(); }
+function readTime(summary) { return Math.ceil(summary.split(/\s+/).length / 180) + ' min read'; }
+
+const RAW_ARTICLES = [
+  { title: "OpenAI Unveils GPT-5: A Leap Toward Artificial General Intelligence", summary: "OpenAI's latest model demonstrates unprecedented reasoning capabilities, solving complex mathematical proofs and writing production-ready code with minimal prompting. Researchers say it represents the most significant jump in AI capability since GPT-4.", category: "Technology", source: "The Verge", minutesAgo: 12, imageIndex: 0 },
+  { title: "James Webb Telescope Captures First Direct Image of Earth-Like Exoplanet", summary: "Astronomers confirm the discovery of a rocky exoplanet with liquid water signatures just 40 light-years away.", category: "Science", source: "Reuters", minutesAgo: 34, imageIndex: 3 },
+  { title: "EU Passes Sweeping AI Regulation That Will Reshape Tech Industry", summary: "New rules require transparency, safety audits, and human oversight for high-risk AI systems deployed across Europe.", category: "Politics", source: "BBC News", minutesAgo: 55, imageIndex: 1 },
+  { title: "SpaceX Starship Completes First Full Orbital Mission With Crew", summary: "Four astronauts splashed down safely after a 72-hour journey marking a new era for commercial spaceflight.", category: "Science", source: "AP News", minutesAgo: 78, imageIndex: 4 },
+  { title: "Federal Reserve Signals Three Rate Cuts in 2026 Amid Cooling Inflation", summary: "Markets rally sharply as Fed Chair outlines a dovish pivot, citing sustained progress toward the 2% inflation target.", category: "Business", source: "Bloomberg", minutesAgo: 90, imageIndex: 5 },
+  { title: "Apple Vision Pro 2 Announced With 3x Battery Life and Spatial Computing SDK", summary: "Apple's second-generation headset drops to $2,499 and introduces a developer platform expected to rival mobile app ecosystems.", category: "Technology", source: "TechCrunch", minutesAgo: 105, imageIndex: 6 },
+  { title: "New Study Links Ultra-Processed Foods to Accelerated Brain Aging", summary: "Harvard researchers tracked 30,000 participants over a decade, finding daily consumption of ultra-processed foods correlated with a 28% faster cognitive decline.", category: "Health", source: "Guardian", minutesAgo: 120, imageIndex: 10 },
+  { title: "China Launches World's Largest Offshore Wind Farm in South China Sea", summary: "The 20-gigawatt facility will power over 12 million homes and underscores Beijing's aggressive renewable energy targets for 2030.", category: "World", source: "Reuters", minutesAgo: 145, imageIndex: 7 },
+  { title: "NVIDIA Blackwell Ultra GPUs Shatter AI Training Records, Cut Costs by 60%", summary: "The new chip architecture achieves 10 exaflops of AI performance, enabling models that previously required a data center to train on a single server rack.", category: "Technology", source: "Wired", minutesAgo: 160, imageIndex: 14 },
+  { title: "WHO Declares End of COVID-19 as Global Health Emergency After Five Years", summary: "The announcement marks a symbolic close to the pandemic era as global immunity levels stabilize and hospitalizations remain near historical lows.", category: "Health", source: "BBC News", minutesAgo: 180, imageIndex: 11 },
+  { title: "Tesla Robotaxi Network Expands to 50 US Cities With Fully Driverless Service", summary: "Elon Musk's decade-long promise becomes reality as Tesla deploys unsupervised FSD across major metropolitan corridors.", category: "Technology", source: "Bloomberg", minutesAgo: 195, imageIndex: 8 },
+  { title: "Breakthrough Gene Therapy Restores Sight in Patients With Inherited Blindness", summary: "Clinical trials show 94% of participants regained functional vision after a single injection targeting the RPE65 gene mutation.", category: "Health", source: "NYT", minutesAgo: 210, imageIndex: 15 },
+  { title: "Google DeepMind's AlphaFold 3 Predicts Protein-Drug Interactions With 99% Accuracy", summary: "The new model accelerates pharmaceutical discovery by simulating molecular binding without costly wet-lab experiments.", category: "Science", source: "The Verge", minutesAgo: 230, imageIndex: 2 },
+  { title: "Amazon Acquires Anthropic for $8 Billion in Landmark AI Deal", summary: "The acquisition secures AWS as the exclusive cloud provider for Claude's training infrastructure and gives Amazon a leading AI model platform.", category: "Business", source: "Reuters", minutesAgo: 250, imageIndex: 16 },
+  { title: "Meta's Orion AR Glasses Hit Retail Shelves at $699, Promise All-Day Wearability", summary: "After years of development, Meta's first consumer AR product offers a 70-degree field of view and integration with the full Meta ecosystem.", category: "Technology", source: "TechCrunch", minutesAgo: 270, imageIndex: 9 },
+  { title: "Arctic Sea Ice Reaches Record Low for Third Consecutive Year", summary: "Scientists warn the accelerating melt threatens global weather patterns and accelerates sea-level rise projections for coastal cities.", category: "Science", source: "Guardian", minutesAgo: 285, imageIndex: 12 },
+  { title: "NBA Finals Draw Record 45 Million Viewers as Basketball Goes Global", summary: "International streaming rights surpassed North American cable revenue for the first time in league history.", category: "Sports", source: "AP News", minutesAgo: 300, imageIndex: 13 },
+  { title: "Microsoft Copilot Integrated Into Windows 12 as Default OS-Level AI Layer", summary: "Every Windows application can now invoke Copilot through a unified API, blurring the line between operating system and AI assistant.", category: "Technology", source: "Wired", minutesAgo: 320, imageIndex: 17 },
+  { title: "UN Summit on AI Governance Ends With Historic 140-Nation Agreement", summary: "The landmark accord establishes minimum safety standards and a new international body to monitor frontier AI development.", category: "World", source: "BBC News", minutesAgo: 340, imageIndex: 0 },
+  { title: "Quantum Computer Solves 100-Year-Old Cryptography Problem in 4 Minutes", summary: "IBM's latest 1,000-qubit system cracked an RSA-2048 key pair, prompting urgent calls from security agencies to accelerate post-quantum encryption standards.", category: "Technology", source: "Reuters", minutesAgo: 360, imageIndex: 1 },
+  { title: "Scientists Discover Microplastics in 98% of Human Brain Tissue Samples", summary: "A peer-reviewed study raises new concerns about long-term neurological effects of plastic pollution entering the food chain.", category: "Health", source: "NYT", minutesAgo: 380, imageIndex: 3 },
+  { title: "South Korea Introduces Four-Day Work Week for All Public Sector Employees", summary: "The pilot program, backed by productivity data from Nordic nations, could reshape Asia's notoriously demanding work culture.", category: "World", source: "Guardian", minutesAgo: 400, imageIndex: 4 },
+  { title: "Stripe Processes $2 Trillion in Payments in 2025, Surpassing Visa's Online Volume", summary: "The fintech giant's growth was fueled by API-first adoption among AI startups and a surge in cross-border e-commerce.", category: "Business", source: "Bloomberg", minutesAgo: 420, imageIndex: 5 },
+  { title: "Fusion Energy Startup Helion Achieves Net Positive Energy Milestone", summary: "For the first time outside a national lab, a private company sustains a plasma reaction that produces more energy than it consumes.", category: "Science", source: "The Verge", minutesAgo: 440, imageIndex: 6 },
+  { title: "TikTok Reaches 3 Billion Monthly Active Users, Overtakes YouTube Watch Time", summary: "ByteDance's flagship app dominates short-form and now mid-form video globally, with creators averaging $8,000/month through its partner program.", category: "Culture", source: "TechCrunch", minutesAgo: 460, imageIndex: 7 },
+  { title: "India's Lunar Mission Discovers Significant Water Ice Reserves Near South Pole", summary: "Chandrayaan-4 data reveals subsurface ice deposits that could sustain a permanent lunar outpost, spurring international interest in the site.", category: "Science", source: "AP News", minutesAgo: 480, imageIndex: 8 },
+  { title: "OpenStreetMap Reaches 10 Million Contributors, Surpasses Google Maps in Rural Coverage", summary: "The open-source mapping project now holds more granular road data in 140 countries, becoming the default for autonomous vehicle training datasets.", category: "Technology", source: "Wired", minutesAgo: 500, imageIndex: 9 },
+  { title: "Paris Olympics 2028 Introduces AI-Assisted Judging for Gymnastics and Diving", summary: "Computer vision scoring eliminates subjective bias and reduces appeals by 90% in early trials, but sparks debate over the soul of competitive sport.", category: "Sports", source: "Reuters", minutesAgo: 520, imageIndex: 10 },
+  { title: "Netflix Releases AI-Generated Feature Film, Earns Oscar Nomination", summary: "The studio's fully synthetic 90-minute drama written, animated, and scored by AI systems prompts the Academy to update eligibility rules.", category: "Culture", source: "Guardian", minutesAgo: 540, imageIndex: 11 },
+  { title: "US Passes National Privacy Law Giving Citizens Right to Delete Data", summary: "The American Data Privacy Protection Act mandates opt-in consent for data collection and grants consumers the right to sue companies for violations.", category: "Politics", source: "Bloomberg", minutesAgo: 560, imageIndex: 12 },
+  { title: "Anthropic Releases Claude 4 With 1M Token Context and Real-Time Web Grounding", summary: "The new model sets benchmarks across coding, reasoning, and multimodal tasks, with native support for tool use across 500+ enterprise integrations.", category: "Technology", source: "The Verge", minutesAgo: 580, imageIndex: 13 },
+  { title: "Boeing 797 Makes Maiden Flight, Ushering In Blended Wing Body Era", summary: "The radical new fuselage design promises 40% fuel savings and carries 400 passengers without a traditional tube-and-wing configuration.", category: "Business", source: "BBC News", minutesAgo: 600, imageIndex: 14 },
+  { title: "Scientists Reverse Aging Markers in Mice Using mRNA Reprogramming", summary: "Stanford researchers report a 45% reduction in biological age indicators in treated rodents, opening a path toward human longevity therapies.", category: "Health", source: "NYT", minutesAgo: 620, imageIndex: 15 },
+  { title: "Bitcoin Hits $200,000 as Institutional ETF Inflows Break Monthly Records", summary: "Sovereign wealth funds and pension managers now account for over 60% of BTC ETF holdings, cementing crypto's status as a mainstream asset class.", category: "Business", source: "Bloomberg", minutesAgo: 640, imageIndex: 16 },
+  { title: "Deepfake Detection Law Passes in EU, Requires Watermarking All Synthetic Media", summary: "Content platforms must embed cryptographic signatures in AI-generated video and audio or face fines up to 6% of global revenue.", category: "Politics", source: "Reuters", minutesAgo: 660, imageIndex: 17 },
+  { title: "Harvard Study: Remote Work Boosts Productivity 22% While Cutting Office Costs in Half", summary: "A five-year longitudinal study of 80,000 knowledge workers challenges the return-to-office narrative championed by major US corporations.", category: "Business", source: "Guardian", minutesAgo: 680, imageIndex: 0 },
+  { title: "China's Digital Yuan Hits 1 Billion Users, Challenging USD in Cross-Border Trade", summary: "The e-CNY is now accepted in 35 countries and increasingly used to settle commodity trades, reducing reliance on SWIFT infrastructure.", category: "World", source: "AP News", minutesAgo: 700, imageIndex: 1 },
+  { title: "New Antibiotic Class Defeats 99% of Drug-Resistant Superbugs in Lab Trials", summary: "The compound, derived from soil bacteria, works through a novel mechanism that bacteria cannot easily evolve resistance against.", category: "Health", source: "Wired", minutesAgo: 720, imageIndex: 2 },
+  { title: "OpenAI Launches $100B 'Stargate' US AI Infrastructure Fund", summary: "The initiative will build 20 new data centers and create 100,000 direct jobs over five years with backing from SoftBank and Oracle.", category: "Technology", source: "Bloomberg", minutesAgo: 740, imageIndex: 3 },
+  { title: "Climate Summit Agrees to Phase Out Coal Globally by 2030", summary: "130 nations signed the binding agreement, committing to replace coal with renewables and compensate developing nations through a $500B transition fund.", category: "World", source: "BBC News", minutesAgo: 760, imageIndex: 4 },
+  { title: "Nintendo Switch 3 Launches With 4K OLED Display and Backward Compatibility", summary: "The hybrid console's new GPU architecture runs demanding titles at native 4K while maintaining the portability that defined its predecessors.", category: "Culture", source: "The Verge", minutesAgo: 780, imageIndex: 5 },
+  { title: "Waymo Deploys 10,000 Robotaxis in LA, Becomes City's Largest Taxi Fleet", summary: "The milestone makes Los Angeles the first city where self-driving vehicles outnumber human-driven taxis, a shift expected to hit 30 more cities by 2027.", category: "Technology", source: "TechCrunch", minutesAgo: 800, imageIndex: 6 },
+  { title: "New Alzheimer's Drug Halts Progression in 60% of Early-Stage Patients", summary: "Phase 3 trials of the monoclonal antibody treatment show cognitive decline stopping entirely in a majority of participants over 18 months.", category: "Health", source: "NYT", minutesAgo: 820, imageIndex: 7 },
+  { title: "Elon Musk's xAI Grok-3 Beats GPT-5 on Math and Coding Benchmarks", summary: "The surprise release from xAI surpasses competitors on AIME and HumanEval, intensifying the race for dominance in frontier AI.", category: "Technology", source: "Bloomberg", minutesAgo: 840, imageIndex: 8 },
+];
+
+// Build full article objects
+const ALL_ARTICLES = RAW_ARTICLES.map((a, i) => ({
+  id: i + 1,
+  title: a.title,
+  summary: a.summary,
+  category: a.category,
+  source: a.source,
+  publishedAt: minsAgo(a.minutesAgo),
+  imageUrl: IMAGES[a.imageIndex % IMAGES.length],
+  url: '#',
+  readTime: readTime(a.summary),
+}));
+
+// ── Utils ───────────────────────────────────────────────────────────────────
+
+function formatTimeAgo(iso) {
+  const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+  if (diff < 60)    return 'just now';
+  if (diff < 3600)  return Math.floor(diff / 60) + 'm ago';
+  if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+  return Math.floor(diff / 86400) + 'd ago';
+}
+
+const CATEGORY_LABEL_MAP = {
+  Technology: 'Tech & Science', Science: 'Tech & Science', Health: 'Tech & Science',
+  Business: 'Business', World: 'Business',
+  Culture: 'Arts & Culture', Sports: 'Sports', Politics: 'Entertainment',
+};
+const CATEGORY_COLORS = {
+  'Tech & Science': '#4da6ff', 'Business': '#fbbf24',
+  'Arts & Culture': '#a78bfa', 'Sports': '#fb923c', 'Entertainment': '#f472b6',
+};
+function getCategoryLabel(cat) { return CATEGORY_LABEL_MAP[cat] || cat; }
+function getCategoryColor(cat) { return CATEGORY_COLORS[getCategoryLabel(cat)] || '#94a3b8'; }
+
+// ── Topics ──────────────────────────────────────────────────────────────────
+
+const TOPICS = [
+  { id: 'tech',          label: 'Tech & Science', icon: '🌐', categories: ['Technology', 'Science', 'Health'] },
+  { id: 'business',      label: 'Business',        icon: '💲', categories: ['Business', 'World'] },
+  { id: 'arts',          label: 'Arts & Culture',  icon: '🎨', categories: ['Culture'] },
+  { id: 'sports',        label: 'Sports',           icon: '🏅', categories: ['Sports'] },
+  { id: 'entertainment', label: 'Entertainment',   icon: '📺', categories: ['Politics'] },
+];
+
+// ── State ────────────────────────────────────────────────────────────────────
+
+const state = {
+  displayedArticles: [],    // accumulated articles shown in feed
+  currentPage: 0,
+  hasMore: true,
+  loading: false,
+  filterCategories: null,   // null = all; string[] = filtered
+  savedCategories: null,
+  savedTopicIds: new Set(),
+  showInterests: true,
+  activeTab: 'for-you',
+  activeTopic: null,
+  openDropdownId: null,     // article ID of currently open ··· dropdown
+  topicsOpen: false,
+  shareOpen: false,
+};
+
+const PAGE_SIZE = 12;
+const userActions = {};     // { [articleId]: { liked, bookmarked, inSpace, disliked } }
+
+function getActions(id) {
+  return userActions[id] || { liked: false, bookmarked: false, inSpace: false, disliked: false };
+}
+function ensureActions(id) {
+  if (!userActions[id]) userActions[id] = { liked: false, bookmarked: false, inSpace: false, disliked: false };
+  return userActions[id];
+}
+
+// ── Filtered + sorted articles ──────────────────────────────────────────────
+
+function getFilteredArticles() {
+  let articles = [...ALL_ARTICLES];
+  if (state.filterCategories && state.filterCategories.length > 0) {
+    articles = articles.filter(a => state.filterCategories.includes(a.category));
+  }
+  articles.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
+  return articles;
+}
+
+// ── SVG Icons (HTML strings) ────────────────────────────────────────────────
+
+function heartIconSvg(filled) {
+  return `<svg width="15" height="15" viewBox="0 0 24 24"
+    fill="${filled ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2"
+    stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+  </svg>`;
+}
+
+const dotsIconSvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+  <circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/>
+</svg>`;
+
+const bookmarkIconSvg = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+  stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+</svg>`;
+
+const plusIconSvg = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+  stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+</svg>`;
+
+const dislikeIconSvg = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+  stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"/>
+</svg>`;
+
+// ── ActionsBar HTML ─────────────────────────────────────────────────────────
+
+function actionsBarHtml(articleId) {
+  const a = getActions(articleId);
+  const menuHtml = state.openDropdownId === articleId ? `
+    <ul class="card__more-menu" role="menu">
+      <li role="none">
+        <button class="card__menu-item${a.bookmarked ? ' card__menu-item--on' : ''}"
+          role="menuitem" data-action-menu="bookmarked" data-id="${articleId}">
+          ${bookmarkIconSvg} ${a.bookmarked ? 'Saved' : 'Bookmark'}
+        </button>
+      </li>
+      <li role="none">
+        <button class="card__menu-item${a.inSpace ? ' card__menu-item--on' : ''}"
+          role="menuitem" data-action-menu="inSpace" data-id="${articleId}">
+          ${plusIconSvg} ${a.inSpace ? 'In Space' : 'Add to Space'}
+        </button>
+      </li>
+      <li role="none">
+        <button class="card__menu-item card__menu-item--danger${a.disliked ? ' card__menu-item--on' : ''}"
+          role="menuitem" data-action-menu="disliked" data-id="${articleId}">
+          ${dislikeIconSvg} ${a.disliked ? 'Disliked' : 'Dislike'}
+        </button>
+      </li>
+    </ul>` : '';
+
+  return `
+    <div class="card__actions">
+      <button class="card__action-btn${a.liked ? ' card__action-btn--liked' : ''}"
+        data-action-like="${articleId}"
+        aria-label="${a.liked ? 'Unlike' : 'Like'}" title="${a.liked ? 'Unlike' : 'Like'}">
+        ${heartIconSvg(a.liked)}
+      </button>
+      <div class="card__more-wrap" data-more-wrap="${articleId}">
+        <button class="card__action-btn" data-action-more="${articleId}"
+          aria-label="More options" aria-haspopup="menu"
+          aria-expanded="${state.openDropdownId === articleId}">
+          ${dotsIconSvg}
+        </button>
+        ${menuHtml}
+      </div>
+    </div>`;
+}
+
+// ── Card HTML generators ────────────────────────────────────────────────────
+
+function categoryBadgeHtml(category, overlay) {
+  const label = getCategoryLabel(category);
+  const color = getCategoryColor(category);
+  const cls = overlay ? 'card__badge card__badge--overlay' : 'card__badge card__badge--inline';
+  return `<span class="${cls}" style="--cat:${color}">${label}</span>`;
+}
+
+function metaRowHtml(article) {
+  return `<footer class="card__meta">
+    <span class="card__source">${article.source}</span>
+    <span class="card__dot">·</span>
+    <time class="card__time" datetime="${article.publishedAt}">${formatTimeAgo(article.publishedAt)}</time>
+    <span class="card__dot">·</span>
+    <span class="card__read">${article.readTime}</span>
+  </footer>`;
+}
+
+function headlineCardHtml(article) {
+  return `
+  <article class="card card--headline">
+    <a href="${article.url}" class="card__link">
+      <div class="card__img-wrap">
+        <img class="card__img" src="${article.imageUrl}" alt="${escHtml(article.title)}" loading="eager"/>
+        ${categoryBadgeHtml(article.category, true)}
+      </div>
+      <div class="card__body">
+        <span class="card__source-label">${article.source}</span>
+        <h2 class="card__title card__title--lg">${escHtml(article.title)}</h2>
+        <p class="card__summary">${escHtml(article.summary)}</p>
+        ${metaRowHtml(article)}
+      </div>
+    </a>
+    ${actionsBarHtml(article.id)}
+  </article>`;
+}
+
+function smallCardHtml(article) {
+  return `
+  <article class="card card--small">
+    <a href="${article.url}" class="card__link">
+      <div class="card__body">
+        <span class="card__source-label">${article.source}</span>
+        <h3 class="card__title card__title--sm">${escHtml(article.title)}</h3>
+        <div class="card__tags">
+          ${categoryBadgeHtml(article.category, false)}
+          <span class="card__dot">·</span>
+          <time class="card__time" datetime="${article.publishedAt}">${formatTimeAgo(article.publishedAt)}</time>
+        </div>
+      </div>
+      <div class="card__thumb-wrap">
+        <img class="card__thumb" src="${article.imageUrl}" alt="" loading="lazy"/>
+      </div>
+    </a>
+    ${actionsBarHtml(article.id)}
+  </article>`;
+}
+
+function stackedCardHtml(article) {
+  return `
+  <article class="card card--stacked">
+    <a href="${article.url}" class="card__link">
+      <div class="card__img-wrap card__img-wrap--16-8">
+        <img class="card__img" src="${article.imageUrl}" alt="${escHtml(article.title)}" loading="lazy"/>
+        ${categoryBadgeHtml(article.category, true)}
+      </div>
+      <div class="card__body">
+        <span class="card__source-label">${article.source}</span>
+        <h3 class="card__title card__title--md">${escHtml(article.title)}</h3>
+        <p class="card__summary card__summary--clamp2">${escHtml(article.summary)}</p>
+        ${metaRowHtml(article)}
+      </div>
+    </a>
+    ${actionsBarHtml(article.id)}
+  </article>`;
+}
+
+function feedSectionHtml(chunk) {
+  let html = '<div class="feed__section">';
+  if (chunk[0]) html += headlineCardHtml(chunk[0]);
+  if (chunk[1]) {
+    html += '<div class="feed__small-grid">';
+    html += smallCardHtml(chunk[1]);
+    if (chunk[2]) html += smallCardHtml(chunk[2]);
+    if (chunk[3]) html += smallCardHtml(chunk[3]);
+    html += '</div>';
+  }
+  if (chunk[4] && chunk[5]) {
+    html += '<div class="feed__double-row">' + stackedCardHtml(chunk[4]) + stackedCardHtml(chunk[5]) + '</div>';
+  } else if (chunk[4] && !chunk[5]) {
+    html += '<div class="feed__small-grid">' + smallCardHtml(chunk[4]) + '</div>';
+  }
+  html += '</div>';
+  return html;
+}
+
+function skeletonHtml() {
+  const smallSkel = `
+    <div class="skel-small">
+      <div class="skel-small__body">
+        <div class="skeleton skel-small__src"></div>
+        <div class="skeleton skel-small__title"></div>
+        <div class="skeleton skel-small__title skel-small__title--short"></div>
+        <div class="skeleton skel-small__meta"></div>
+      </div>
+      <div class="skeleton skel-small__image"></div>
+    </div>`;
+  const stackedSkel = `
+    <div class="skel-small skel-small--vertical">
+      <div class="skeleton skel-small__image skel-small__image--full"></div>
+      <div class="skel-small__body skel-small__body--padded">
+        <div class="skeleton skel-small__src"></div>
+        <div class="skeleton skel-small__title"></div>
+        <div class="skeleton skel-small__title skel-small__title--short"></div>
+        <div class="skeleton skel-small__meta"></div>
+      </div>
+    </div>`;
+  return `
+    <div class="skel-headline">
+      <div class="skeleton skel-headline__image"></div>
+      <div class="skel-headline__body">
+        <div class="skeleton skel-headline__src"></div>
+        <div class="skeleton skel-headline__title skel-headline__title--lg"></div>
+        <div class="skeleton skel-headline__title"></div>
+        <div class="skeleton skel-headline__line"></div>
+        <div class="skeleton skel-headline__line"></div>
+        <div class="skeleton skel-headline__line skel-headline__line--short"></div>
+        <div class="skeleton skel-headline__meta"></div>
+      </div>
+    </div>
+    <div class="skel-smalls">${smallSkel}${smallSkel}${smallSkel}</div>
+    <div class="skel-double">${stackedSkel}${stackedSkel}</div>`;
+}
+
+function spinnerHtml() {
+  return `<div class="spinner"><div class="spinner__ring"></div><span class="spinner__text">Loading more…</span></div>`;
+}
+
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Feed rendering ──────────────────────────────────────────────────────────
+
+function renderFeed() {
+  const feed = document.getElementById('feed');
+  const articles = state.displayedArticles;
+
+  if (state.loading && articles.length === 0) {
+    feed.innerHTML = skeletonHtml();
+    return;
+  }
+
+  if (articles.length === 0) {
+    feed.innerHTML = '<div class="feed__state"><p>No articles found for this topic.</p></div>';
+    return;
+  }
+
+  let html = '';
+  for (let i = 0; i < articles.length; i += 6) {
+    html += feedSectionHtml(articles.slice(i, i + 6));
+  }
+
+  html += '<div class="feed__sentinel" id="sentinel" aria-hidden="true"></div>';
+
+  if (state.loading && articles.length > 0) {
+    html += spinnerHtml();
+  }
+
+  if (!state.hasMore && !state.loading) {
+    html += `<p class="feed__end" aria-live="polite">You've reached the end · ${articles.length} articles loaded</p>`;
+  }
+
+  feed.innerHTML = html;
+  setupSentinelObserver();
+}
+
+function rerenderActionsBar(articleId) {
+  const wrap = document.querySelector(`[data-more-wrap="${articleId}"]`);
+  if (!wrap) return;
+  const bar = wrap.closest('.card__actions');
+  if (!bar) return;
+  const a = getActions(articleId);
+
+  // Update like button
+  const likeBtn = bar.querySelector(`[data-action-like="${articleId}"]`);
+  if (likeBtn) {
+    likeBtn.className = 'card__action-btn' + (a.liked ? ' card__action-btn--liked' : '');
+    likeBtn.setAttribute('aria-label', a.liked ? 'Unlike' : 'Like');
+    likeBtn.innerHTML = heartIconSvg(a.liked);
+  }
+
+  // Update more button + dropdown
+  const moreBtn = bar.querySelector(`[data-action-more="${articleId}"]`);
+  if (moreBtn) {
+    moreBtn.setAttribute('aria-expanded', state.openDropdownId === articleId ? 'true' : 'false');
+  }
+
+  const menuOpen = state.openDropdownId === articleId;
+  let existingMenu = wrap.querySelector('.card__more-menu');
+  if (menuOpen && !existingMenu) {
+    wrap.insertAdjacentHTML('beforeend', `
+      <ul class="card__more-menu" role="menu">
+        <li role="none">
+          <button class="card__menu-item${a.bookmarked ? ' card__menu-item--on' : ''}"
+            role="menuitem" data-action-menu="bookmarked" data-id="${articleId}">
+            ${bookmarkIconSvg} ${a.bookmarked ? 'Saved' : 'Bookmark'}
+          </button>
+        </li>
+        <li role="none">
+          <button class="card__menu-item${a.inSpace ? ' card__menu-item--on' : ''}"
+            role="menuitem" data-action-menu="inSpace" data-id="${articleId}">
+            ${plusIconSvg} ${a.inSpace ? 'In Space' : 'Add to Space'}
+          </button>
+        </li>
+        <li role="none">
+          <button class="card__menu-item card__menu-item--danger${a.disliked ? ' card__menu-item--on' : ''}"
+            role="menuitem" data-action-menu="disliked" data-id="${articleId}">
+            ${dislikeIconSvg} ${a.disliked ? 'Disliked' : 'Dislike'}
+          </button>
+        </li>
+      </ul>`);
+  } else if (!menuOpen && existingMenu) {
+    existingMenu.remove();
+  } else if (menuOpen && existingMenu) {
+    // refresh menu item classes/labels
+    const bm = existingMenu.querySelector('[data-action-menu="bookmarked"]');
+    if (bm) { bm.className = 'card__menu-item' + (a.bookmarked ? ' card__menu-item--on' : ''); bm.innerHTML = bookmarkIconSvg + ' ' + (a.bookmarked ? 'Saved' : 'Bookmark'); }
+    const sp = existingMenu.querySelector('[data-action-menu="inSpace"]');
+    if (sp) { sp.className = 'card__menu-item' + (a.inSpace ? ' card__menu-item--on' : ''); sp.innerHTML = plusIconSvg + ' ' + (a.inSpace ? 'In Space' : 'Add to Space'); }
+    const dl = existingMenu.querySelector('[data-action-menu="disliked"]');
+    if (dl) { dl.className = 'card__menu-item card__menu-item--danger' + (a.disliked ? ' card__menu-item--on' : ''); dl.innerHTML = dislikeIconSvg + ' ' + (a.disliked ? 'Disliked' : 'Dislike'); }
+  }
+}
+
+// ── Action handlers ─────────────────────────────────────────────────────────
+
+function toggleAction(articleId, key) {
+  const a = ensureActions(articleId);
+  a[key] = !a[key];
+  rerenderActionsBar(articleId);
+}
+
+// Single delegated click handler for all feed interactions
+document.addEventListener('click', function(e) {
+  // Like button
+  const likeBtn = e.target.closest('[data-action-like]');
+  if (likeBtn) {
+    e.stopPropagation();
+    toggleAction(Number(likeBtn.dataset.actionLike), 'liked');
+    return;
+  }
+
+  // ··· button
+  const moreBtn = e.target.closest('[data-action-more]');
+  if (moreBtn) {
+    e.stopPropagation();
+    const id = Number(moreBtn.dataset.actionMore);
+    state.openDropdownId = state.openDropdownId === id ? null : id;
+    rerenderActionsBar(id);
+    return;
+  }
+
+  // Menu item inside ··· dropdown
+  const menuItem = e.target.closest('[data-action-menu]');
+  if (menuItem) {
+    e.stopPropagation();
+    const id = Number(menuItem.dataset.id);
+    const key = menuItem.dataset.actionMenu;
+    toggleAction(id, key);
+    state.openDropdownId = null;
+    rerenderActionsBar(id);
+    return;
+  }
+
+  // Close ··· dropdown when clicking outside
+  if (state.openDropdownId !== null) {
+    const openWrap = document.querySelector(`[data-more-wrap="${state.openDropdownId}"]`);
+    if (!openWrap || !openWrap.contains(e.target)) {
+      const prevId = state.openDropdownId;
+      state.openDropdownId = null;
+      rerenderActionsBar(prevId);
+    }
+  }
+
+  // Close navbar dropdowns
+  if (state.topicsOpen && !document.getElementById('topics-wrap').contains(e.target)) {
+    closeTopicsDropdown();
+  }
+  if (state.shareOpen && !document.getElementById('share-wrap').contains(e.target)) {
+    closeShareDropdown();
+  }
+});
+
+// ── Pagination ──────────────────────────────────────────────────────────────
+
+function loadPage(replace) {
+  if (state.loading) return;
+  const filtered = getFilteredArticles();
+  const total = filtered.length;
+
+  if (!replace && !state.hasMore) return;
+
+  state.loading = true;
+  if (replace) renderFeed(); // show skeleton on first load
+
+  // Simulate 200–400 ms network delay for realism
+  setTimeout(() => {
+    const nextPage = replace ? 1 : state.currentPage + 1;
+    const start = (nextPage - 1) * PAGE_SIZE;
+    const end = start + PAGE_SIZE;
+    const slice = filtered.slice(start, end);
+
+    if (replace) {
+      state.displayedArticles = slice;
+    } else {
+      state.displayedArticles = [...state.displayedArticles, ...slice];
+    }
+
+    state.currentPage = nextPage;
+    state.hasMore = end < total;
+    state.loading = false;
+    renderFeed();
+  }, 200 + Math.random() * 200);
+}
+
+function resetAndLoad() {
+  state.displayedArticles = [];
+  state.currentPage = 0;
+  state.hasMore = true;
+  loadPage(true);
+}
+
+// ── Infinite scroll ─────────────────────────────────────────────────────────
+
+let scrollObserver = null;
+
+function setupSentinelObserver() {
+  if (scrollObserver) scrollObserver.disconnect();
+  const sentinel = document.getElementById('sentinel');
+  if (!sentinel) return;
+
+  scrollObserver = new IntersectionObserver(
+    ([entry]) => {
+      if (entry.isIntersecting && !state.loading && state.hasMore) {
+        loadPage(false);
+      }
+    },
+    { rootMargin: '200px' }
+  );
+  scrollObserver.observe(sentinel);
+}
+
+// ── Navbar ──────────────────────────────────────────────────────────────────
+
+function setActiveTab(tabId) {
+  state.activeTab = tabId;
+  document.getElementById('tab-foryou').className = 'navbar__tab' + (tabId === 'for-you' ? ' navbar__tab--active' : '');
+  document.getElementById('tab-top').className    = 'navbar__tab' + (tabId === 'top'     ? ' navbar__tab--active' : '');
+  document.getElementById('tab-topics').className = 'navbar__tab navbar__tab--topics' + (tabId === 'topics' ? ' navbar__tab--active' : '');
+}
+
+function handleTabForYou() {
+  setActiveTab('for-you');
+  closeTopicsDropdown();
+  state.activeTopic = null;
+  document.getElementById('topics-label').textContent = 'Topics';
+  applyFilter(null);
+}
+
+function handleTabTop() {
+  setActiveTab('top');
+  closeTopicsDropdown();
+  state.activeTopic = null;
+  document.getElementById('topics-label').textContent = 'Topics';
+  applyFilter(null);
+}
+
+function toggleTopicsDropdown() {
+  state.topicsOpen ? closeTopicsDropdown() : openTopicsDropdown();
+}
+
+function openTopicsDropdown() {
+  state.topicsOpen = true;
+  const btn = document.getElementById('tab-topics');
+  btn.setAttribute('aria-expanded', 'true');
+  document.getElementById('topics-chevron').classList.add('navbar__chevron--open');
+  const dd = document.getElementById('topics-dropdown');
+  dd.innerHTML = TOPICS.map(t => `
+    <button class="navbar__dropdown-item${state.activeTopic === t.label ? ' navbar__dropdown-item--active' : ''}"
+      onclick="handleTopicClick('${t.label}')" role="option" aria-selected="${state.activeTopic === t.label}">
+      <span class="navbar__dropdown-icon">${t.icon}</span>${t.label}
+    </button>`).join('');
+  dd.style.display = 'block';
+}
+
+function closeTopicsDropdown() {
+  state.topicsOpen = false;
+  document.getElementById('tab-topics').setAttribute('aria-expanded', 'false');
+  document.getElementById('topics-chevron').classList.remove('navbar__chevron--open');
+  document.getElementById('topics-dropdown').style.display = 'none';
+}
+
+function handleTopicClick(label) {
+  setActiveTab('topics');
+  closeTopicsDropdown();
+  state.activeTopic = label;
+  document.getElementById('topics-label').textContent = label;
+  const topic = TOPICS.find(t => t.label === label);
+  applyFilter(topic ? topic.categories : null);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function toggleShareDropdown() {
+  state.shareOpen ? closeShareDropdown() : openShareDropdown();
+}
+
+function openShareDropdown() {
+  state.shareOpen = true;
+  document.getElementById('share-wrap').querySelector('.navbar__share-btn').setAttribute('aria-expanded', 'true');
+  document.getElementById('share-dropdown').style.display = 'block';
+}
+
+function closeShareDropdown() {
+  state.shareOpen = false;
+  document.getElementById('share-wrap').querySelector('.navbar__share-btn').setAttribute('aria-expanded', 'false');
+  document.getElementById('share-dropdown').style.display = 'none';
+}
+
+function handleCopyLink() {
+  navigator.clipboard.writeText(window.location.href).then(() => {
+    document.getElementById('copy-label').textContent = 'Copied!';
+    setTimeout(() => {
+      document.getElementById('copy-label').textContent = 'Copy Link';
+      closeShareDropdown();
+    }, 1500);
+  });
+}
+
+function handleFilterClick() {
+  state.showInterests = true;
+  renderInterestsWidget();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ── Filter logic ────────────────────────────────────────────────────────────
+
+function applyFilter(categories) {
+  // activeTopic wins; else fall back to saved categories
+  if (categories !== undefined) {
+    state.filterCategories = categories;
+  } else {
+    state.filterCategories = state.activeTopic
+      ? TOPICS.find(t => t.label === state.activeTopic)?.categories || null
+      : state.savedCategories;
+  }
+  resetAndLoad();
+}
+
+// ── Interests widget ────────────────────────────────────────────────────────
+
+let selectedTopicIds = new Set();
+let interestsSaved = false;
+
+function renderInterestsWidget() {
+  const container = document.getElementById('interests-container');
+  if (!state.showInterests) { container.innerHTML = ''; return; }
+
+  container.innerHTML = `
+    <div class="interests">
+      <button class="interests__close" onclick="closeInterests()" aria-label="Close">×</button>
+      <h3 class="interests__title">Make it yours</h3>
+      <p class="interests__desc">Select topics and interests to customize your Discover experience</p>
+      <div class="interests__chips">
+        ${TOPICS.map(t => `
+          <button class="interests__chip${selectedTopicIds.has(t.id) ? ' interests__chip--on' : ''}"
+            onclick="toggleTopic('${t.id}')">
+            <span class="interests__chip-icon">${t.icon}</span>${t.label}
+          </button>`).join('')}
+      </div>
+      <button class="interests__save${interestsSaved ? ' interests__save--done' : ''}"
+        onclick="saveInterests()" ${selectedTopicIds.size === 0 ? 'disabled' : ''}>
+        ${interestsSaved ? 'Saved ✓' : 'Save Interests'}
+      </button>
+    </div>`;
+}
+
+function toggleTopic(id) {
+  if (selectedTopicIds.has(id)) selectedTopicIds.delete(id);
+  else selectedTopicIds.add(id);
+  interestsSaved = false;
+  renderInterestsWidget();
+}
+
+function saveInterests() {
+  const cats = [...new Set(
+    TOPICS.filter(t => selectedTopicIds.has(t.id)).flatMap(t => t.categories)
+  )];
+  state.savedCategories = cats;
+  state.savedTopicIds = new Set(selectedTopicIds);
+  // Show filter icon in navbar
+  document.getElementById('filter-wrap').style.display = 'flex';
+  interestsSaved = true;
+  renderInterestsWidget();
+  setTimeout(closeInterests, 800);
+  // Apply saved interests if no topic is actively selected
+  if (!state.activeTopic) {
+    state.filterCategories = cats;
+    resetAndLoad();
+  }
+}
+
+function closeInterests() {
+  state.showInterests = false;
+  renderInterestsWidget();
+}
+
+// ── Cookie banner ────────────────────────────────────────────────────────────
+
+function initCookieBanner() {
+  if (localStorage.getItem('cookie_consent')) return;
+  setTimeout(() => {
+    const banner = document.createElement('div');
+    banner.className = 'cookie-banner';
+    banner.setAttribute('role', 'dialog');
+    banner.setAttribute('aria-modal', 'false');
+    banner.setAttribute('aria-label', 'Cookie Policy');
+    banner.innerHTML = `
+      <div class="cookie-banner__card">
+        <div class="cookie-banner__header">
+          <span class="cookie-banner__icon" aria-hidden="true">🍪</span>
+          <h2 class="cookie-banner__title">Cookie Policy</h2>
+        </div>
+        <p class="cookie-banner__body">
+          We use cookies to enhance your experience. By clicking &ldquo;Accept All
+          Cookies&rdquo; or selecting &ldquo;Necessary Cookies&rdquo;, you agree to our
+          <a href="#" class="cookie-banner__link">privacy policy</a>.
+        </p>
+        <div class="cookie-banner__actions">
+          <button class="cookie-banner__btn cookie-banner__btn--primary"
+            onclick="acceptCookies('necessary', this)">Necessary Cookies</button>
+          <button class="cookie-banner__btn cookie-banner__btn--secondary"
+            onclick="acceptCookies('all', this)">Accept All Cookies</button>
+        </div>
+      </div>`;
+    document.body.appendChild(banner);
+  }, 600);
+}
+
+function acceptCookies(type, btn) {
+  localStorage.setItem('cookie_consent', type);
+  btn.closest('.cookie-banner').remove();
+}
+
+// ── Scroll-to-top ────────────────────────────────────────────────────────────
+
+let scrollTopVisible = false;
+let scrollTopBtn = null;
+
+window.addEventListener('scroll', () => {
+  const shouldShow = window.scrollY > 400;
+  if (shouldShow && !scrollTopVisible) {
+    scrollTopVisible = true;
+    scrollTopBtn = document.createElement('button');
+    scrollTopBtn.className = 'scroll-top';
+    scrollTopBtn.innerHTML = '↑';
+    scrollTopBtn.setAttribute('aria-label', 'Scroll to top');
+    scrollTopBtn.onclick = () => window.scrollTo({ top: 0, behavior: 'smooth' });
+    document.body.appendChild(scrollTopBtn);
+  } else if (!shouldShow && scrollTopVisible) {
+    scrollTopVisible = false;
+    if (scrollTopBtn) { scrollTopBtn.remove(); scrollTopBtn = null; }
+  }
+}, { passive: true });
+
+// ── Market widget ────────────────────────────────────────────────────────────
+
+function sparklinePath(values, w, h) {
+  const min = Math.min(...values), max = Math.max(...values);
+  const range = max - min || 1;
+  const step = w / (values.length - 1);
+  return values.map((v, i) => {
+    const x = (i * step).toFixed(1);
+    const y = (h - ((v - min) / range) * h).toFixed(1);
+    return (i === 0 ? 'M' : 'L') + x + ',' + y;
+  }).join(' ');
+}
+
+const MARKETS = [
+  { fullName: 'S&P F...',     price: '$7,161.50',  change: '+$84.50',   pct: 1.19, up: true,  points: [62,58,55,60,63,61,65,68,66,70,72,71,75,78,77,82,80,84] },
+  { fullName: 'NASDAQ F...',  price: '$26,825.50', change: '+$338.25',  pct: 1.28, up: true,  points: [50,53,51,55,58,57,62,60,65,63,68,70,67,73,75,72,78,80] },
+  { fullName: 'Bitcoin',      price: '$77,428.87', change: '+$2,484.87',pct: 3.32, up: true,  points: [40,44,42,48,45,50,53,51,58,55,62,60,65,68,66,72,70,76] },
+  { fullName: 'VIX',          price: '17.48',      change: '-0.46',     pct: 2.56, up: false, points: [80,75,78,72,70,74,68,65,70,63,60,65,58,55,60,52,50,48] },
+];
+const TRENDING = [
+  { name: 'Netflix, Inc.',                ticker: 'NFLX', logo: 'N', color: '#e50914', price: '$97.31',  change: '-9.72%',  up: false },
+  { name: 'Albemarle Corporation',        ticker: 'ALB',  logo: 'A', color: '#2d6a4f', price: '$197.75', change: '-8.29%',  up: false },
+  { name: 'Rocket Lab USA, Inc.',         ticker: 'RKLB', logo: 'R', color: '#1a1a2e', price: '$84.80',  change: '+2.25%',  up: true  },
+  { name: 'ON Semiconductor Corp.',       ticker: 'ON',   logo: 'O', color: '#003087', price: '$83.01',  change: '+3.85%',  up: true  },
+  { name: 'Charles Schwab Corp.',         ticker: 'SCHW', logo: 'S', color: '#0057a8', price: '$92.28',  change: '-0.37%',  up: false },
+];
+
+function renderMarketWidget() {
+  const W = 90, H = 36;
+  let html = `
+    <div class="market__section-header">
+      <span class="market__section-title">Market Outlook</span>
+      <span class="market__chevron">›</span>
+    </div>
+    <div class="market__grid">
+      ${MARKETS.map(m => {
+        const path = sparklinePath(m.points, W, H);
+        const stroke = m.up ? '#1a8f5a' : '#e5383b';
+        return `<div class="market__card">
+          <div class="market__card-top">
+            <span class="market__card-name">${m.fullName}</span>
+            <span class="market__card-pct ${m.up ? 'market__up' : 'market__down'}">${m.up ? '↗' : '↘'} ${m.pct.toFixed(2)}%</span>
+          </div>
+          <div class="market__card-price">${m.price}</div>
+          <div class="market__card-change ${m.up ? 'market__up' : 'market__down'}">${m.change}</div>
+          <svg class="market__spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+            <path d="${path}" fill="none" stroke="${stroke}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="market__section-header market__section-header--mt">
+      <span class="market__section-title">Trending Companies</span>
+      <span class="market__chevron">›</span>
+    </div>
+    <div class="market__trending">
+      ${TRENDING.map(c => `
+        <div class="market__row">
+          <div class="market__logo" style="background:${c.color}">${c.logo}</div>
+          <div class="market__row-info">
+            <span class="market__row-name">${c.name}</span>
+            <span class="market__row-ticker">${c.ticker}</span>
+          </div>
+          <div class="market__row-right">
+            <span class="market__row-price">${c.price}</span>
+            <span class="market__row-change ${c.up ? 'market__up' : 'market__down'}">${c.change}</span>
+          </div>
+        </div>`).join('')}
+    </div>`;
+  document.getElementById('market-widget').innerHTML = html;
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+
+function init() {
+  renderInterestsWidget();
+  renderMarketWidget();
+  initCookieBanner();
+  resetAndLoad();
+}
+
+init();
+</script>
+</body>
+</html>

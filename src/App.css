@@ -1,0 +1,117 @@
+/* ─────────────────────────────────────────────────────────────────
+   App.css  ·  Global reset, base styles, and app shell layout
+   ───────────────────────────────────────────────────────────────── */
+
+
+/* ── Box-model reset ─────────────────────────────────────────────
+   Apply border-box sizing to every element and pseudo-element so
+   padding and borders are included in the declared width/height.
+   Remove browser default margins and padding for a clean baseline. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+
+/* ── Font rendering ──────────────────────────────────────────────
+   font-synthesis: none        — prevent the browser from faking
+                                 bold/italic when a font face is missing.
+   text-rendering: optimizeLegibility — enable kerning and ligatures
+                                 for crisper text on modern browsers.
+   -webkit-font-smoothing: antialiased — macOS subpixel → greyscale
+                                 antialiasing for lighter, cleaner text.
+   -moz-osx-font-smoothing: grayscale — same effect on Firefox/macOS. */
+:root {
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+
+/* ── Smooth scrolling ────────────────────────────────────────────
+   Enables CSS smooth scrolling for window.scrollTo({ behavior:'smooth' })
+   and anchor links. Respects the user's "reduce motion" system preference
+   if the browser honours it via @media (prefers-reduced-motion). */
+html { scroll-behavior: smooth; }
+
+
+/* ── Body ────────────────────────────────────────────────────────
+   Light grey background (#f2f2f2) lifts white cards off the page.
+   System-font stack falls back gracefully across all OS platforms:
+     -apple-system / BlinkMacSystemFont  → San Francisco on macOS/iOS
+     'Inter'                             → custom font if loaded
+     'Segoe UI'                          → Windows
+     Helvetica / Arial                   → universal fallback */
+body {
+  background: #f2f2f2;
+  color: #111;
+  font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI',
+               Helvetica, Arial, sans-serif;
+  min-height: 100vh;
+}
+
+
+/* ── App shell ───────────────────────────────────────────────────
+   Flex column so the sticky Navbar sits at the top and the body
+   content fills the remaining vertical space. */
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+
+/* ── Two-column body layout ──────────────────────────────────────
+   Flex row: feed column (flexible) + sidebar column (fixed width).
+   max-width 1380px centres the layout on wide monitors.
+   align-items: flex-start prevents the sidebar from stretching to
+   the feed height — it uses position:sticky in Sidebar.css instead. */
+.app__body {
+  display: flex;
+  align-items: flex-start;   /* let each child determine its own height */
+  max-width: 1380px;
+  margin: 0 auto;            /* centre horizontally */
+  width: 100%;
+  padding: 0 24px;
+  gap: 20px;
+}
+
+
+/* ── Feed column ─────────────────────────────────────────────────
+   flex:1 makes the feed take all remaining width after the sidebar.
+   min-width:0 is required on flex children that contain text — without
+   it, the child cannot shrink below its intrinsic content width and
+   will overflow the container. */
+.app__feed {
+  flex: 1;
+  min-width: 0;
+}
+
+
+/* ── Custom scrollbar (WebKit browsers) ──────────────────────────
+   Thin 6 px scrollbar with a transparent track keeps the page clean.
+   ::-webkit-scrollbar-thumb is the draggable handle — semi-transparent
+   so it works on both light and dark backgrounds. */
+::-webkit-scrollbar       { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(0, 0, 0, 0.25); }
+
+
+/* ── Focus ring ──────────────────────────────────────────────────
+   :focus-visible applies only when the element was focused via
+   keyboard (Tab key), not mouse click. This preserves accessibility
+   for keyboard users without showing a ring on every button click.
+   Purple outline (#6c6cff) matches the app's accent colour. */
+:focus-visible {
+  outline: 2px solid #6c6cff;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
